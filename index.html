@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>home</title>
+    <style>
+        @font-face {
+            src: url("./font-bold.ttf");
+            font-weight: bold;
+            font-style: normal;
+            font-family: "Product Sans";
+        }
+
+        @font-face {
+            src: url("./font-italic.ttf");
+            font-weight: normal;
+            font-style: italic;
+            font-family: "Product Sans";
+        }
+
+        @font-face {
+            src: url("./font-bold-italic.ttf");
+            font-weight: bold;
+            font-style: italic;
+            font-family: "Product Sans";
+        }
+
+        @font-face {
+            src: url("./font-regular.ttf");
+            font-weight: normal;
+            font-style: normal;
+            font-family: "Product Sans";
+        }
+
+        * {
+            font-family: "Product Sans", sans-serif;
+        }
+    </style>
+</head>
+<body style="margin: 0; inset: 0; position: fixed; background-image: url('./source.jpeg'); background-position: center; background-size: cover; background-attachment: fixed;">
+    <div style="position: fixed;top: 0;bottom: 0;right: 0;background: rgba(255, 255, 255, .5);left: 40%;margin: 30px;backdrop-filter: blur(50px);border-radius: 20px;">
+        <div id="pane-status" class="pane" style="width: 100%;height: 100%;display: none;">
+            <div style="background: rgba(0, 0, 0, .05);padding: 8px;border-top-left-radius: 20px;border-top-right-radius: 20px;border-bottom: 1px solid rgba(0, 0, 0, .05);height: 37px;">
+                <img src="status.svg" style="vertical-align: middle;width: 36px;">
+                <span style="vertical-align: middle;font-size: 20px;font-weight: bold;">Servers status</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: center; text-align: center; width: 100%; height: calc(100% - 54px);" id="pane-status-content">
+                <div>
+                    <img id="status-icon" src="" style="width: 128px;">
+                    <h1 id="status-text" style="margin: 0; font-weight: normal;"></h1>
+                    <img src="./qr-status.png" style="width: 128px;border-top: rgba(0, 0, 0, .25) 1px solid; margin-top: 15px; padding-left: 50px; padding-right: 50px;">
+                </div>
+            </div>
+            <div style="display: none; align-items: center; justify-content: center; text-align: center; width: 100%; height: calc(100% - 54px);" id="pane-status-error">
+                <div>
+                    <img src="error.svg" style="width: 96px;">
+                    <span style="display: block;font-size: 20px;font-weight: bold;">Something went wrong</span>
+                    <p style="border-bottom: 1px solid rgba(0, 0, 0, .1);margin-bottom: 0;padding-bottom: 15px;">An error occurred while loading this page, please try again later.</p>
+                    <pre id="pane-status-error-message" style="text-align: left;font-family: 'JetBrains Mono', monospace;font-size: 10px; white-space: pre-wrap; word-break: break-all; max-width: 90%;"></pre>
+                </div>
+            </div>
+            <script>
+                try {
+                    window.fetch("https://status.equestria.dev/status.json").then((res) => {
+                        res.json().then((data) => {
+                            document.getElementById("status-text").innerText = data.text;
+                            document.getElementById("status-text").style.color = data.code === 0 ? "#337f35" : (data.code === 1 ? "#7f6c33" : "#7f3333");
+                            document.getElementById("status-icon").src = "./" + data.image + ".svg";
+                        });
+                    });
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById("pane-status-error-message").innerText = e.stack + "\n\n" + `node: ${process.versions.node}, chrome: ${process.versions.chrome}, electron: ${process.versions.electron}`;
+                    document.getElementById("pane-status-content").style.display = "none";
+                    document.getElementById("pane-status-error").style.display = "flex";
+                }
+            </script>
+        </div>
+        <div id="pane-schedule" class="pane" style="width: 100%;height: 100%;display: none;">
+            <div style="background: rgba(0, 0, 0, .05);padding: 8px;border-top-left-radius: 20px;border-top-right-radius: 20px;border-bottom: 1px solid rgba(0, 0, 0, .05);height: 37px;">
+                <img src="schedule.svg" style="vertical-align: middle;width: 36px;">
+                <span style="vertical-align: middle;font-size: 20px;font-weight: bold;">Fronting schedule</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: center; text-align: center; width: 100%; height: calc(100% - 54px);" id="pane-schedule-content">
+                <div style="width: 100%;">
+                    <table style="width: 100%; border-collapse: collapse;" id="schedule"></table>
+                </div>
+            </div>
+            <div style="display: none; align-items: center; justify-content: center; text-align: center; width: 100%; height: calc(100% - 54px);" id="pane-schedule-error">
+                <div>
+                    <img src="error.svg" style="width: 96px;">
+                    <span style="display: block;font-size: 20px;font-weight: bold;">Something went wrong</span>
+                    <p style="border-bottom: 1px solid rgba(0, 0, 0, .1);margin-bottom: 0;padding-bottom: 15px;">An error occurred while loading this page, please try again later.</p>
+                    <pre id="pane-schedule-error-message" style="text-align: left;font-family: 'JetBrains Mono', monospace;font-size: 10px; white-space: pre-wrap; word-break: break-all; max-width: 90%;"></pre>
+                </div>
+            </div>
+            <script>
+                try {
+                    window.fetch("https://ponies.equestria.horse/api/wear/schedule", {
+                        headers: {
+                            "Authorization": "Bearer " + require('./credentials.json')['coldhaze']
+                        }
+                    }).then((res) => {
+                        res.json().then((data) => {
+                            let schedule = data['today'];
+                            document.getElementById("schedule").innerHTML = schedule.map(i => `
+                                        <tr style="width: 100%;">
+                                            <td style="border-right: 1px solid rgba(0, 0, 0, .25); padding: 5px 15px; font-size: 20px; text-align: left;">${i['cloudburst'].length === 1 ? i['cloudburst'].map(j => `
+                                                <img src="${j.avatar}" style="width: 32px; border-radius: 999px; background-color: rgba(0, 0, 0, .25); vertical-align: middle;">
+                                                <span style="vertical-align: middle;">${j.name}</span>
+                                            `).join("") : i['cloudburst'].map(j => `
+                                                <img src="${j.avatar}" style="width: 32px; border-radius: 999px; background-color: rgba(0, 0, 0, .25); vertical-align: middle;">
+                                            `).join("")}</td>
+                                            <td style="border-right: 1px solid rgba(0, 0, 0, .25); padding: 5px 15px; font-size: 20px; text-align: left;">${i['raindrops'].length === 1 ? i['raindrops'].map(j => `
+                                                <img src="${j.avatar}" style="width: 32px; border-radius: 999px; background-color: rgba(0, 0, 0, .25); vertical-align: middle;">
+                                                <span style="vertical-align: middle;">${j.name}</span>
+                                            `).join("") : i['raindrops'].map(j => `
+                                                <img src="${j.avatar}" style="width: 32px; border-radius: 999px; background-color: rgba(0, 0, 0, .25); vertical-align: middle;">
+                                            `).join("")}</td>
+                                        </tr>
+                                    `).join("");
+                        });
+                    });
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById("pane-schedule-error-message").innerText = e.stack + "\n\n" + `node: ${process.versions.node}, chrome: ${process.versions.chrome}, electron: ${process.versions.electron}`;
+                    document.getElementById("pane-schedule-content").style.display = "none";
+                    document.getElementById("pane-schedule-error").style.display = "flex";
+                }
+            </script>
+        </div>
+        <div id="pane-issues" class="pane" style="width: 100%;height: 100%;display: none;">
+            <div style="background: rgba(0, 0, 0, .05);padding: 8px;border-top-left-radius: 20px;border-top-right-radius: 20px;border-bottom: 1px solid rgba(0, 0, 0, .05);height: 37px;">
+                <img src="issues.svg" style="vertical-align: middle;width: 36px;">
+                <span style="vertical-align: middle;font-size: 20px;font-weight: bold;">Currently open issues</span>
+            </div>
+            <div style="width: 100%; height: calc(100% - 54px);" id="pane-issues-content">
+                <div style="width: calc(100% - 20px); display: grid; grid-template-columns: max-content 1fr max-content; margin: 10px;" id="issues"></div>
+            </div>
+            <div style="display: none; align-items: center; justify-content: center; text-align: center; width: 100%; height: calc(100% - 54px);" id="pane-issues-error">
+                <div>
+                    <img src="error.svg" style="width: 96px;">
+                    <span style="display: block;font-size: 20px;font-weight: bold;">Something went wrong</span>
+                    <p style="border-bottom: 1px solid rgba(0, 0, 0, .1);margin-bottom: 0;padding-bottom: 15px;">An error occurred while loading this page, please try again later.</p>
+                    <pre id="pane-issues-error-message" style="text-align: left;font-family: 'JetBrains Mono', monospace;font-size: 10px; white-space: pre-wrap; word-break: break-all; max-width: 90%;"></pre>
+                </div>
+            </div>
+            <script>
+                try {
+                    window.fetch("https://bugs.equestria.dev/api/issues?fields=id,summary,reporter(id,login),visibility,customFields(id,name,value(name,text,color(background,foreground))),project(id,name,iconUrl)&query=" + encodeURIComponent("#Unresolved"), {
+                        headers: {
+                            "Authorization": "Bearer " + require('./credentials.json')['hub']
+                        }
+                    }).then((res) => {
+                        res.json().then((data) => {
+                            window.data = data;
+                            console.log(data);
+                            document.getElementById("issues").innerHTML = data.map(i => `
+                                    <div style="padding: 10px 5px 5px;">
+                                        <div>
+                                            <img src="${i['project']['iconUrl']}" style="width: 24px; background-color: rgba(255, 255, 255, .5); border-radius: 2px; vertical-align: middle;">
+                                            <span style="font-weight: bolder; vertical-align: middle;">${i['project'].name}</span>
+                                        </div>
+                                    </div>
+                                    <div style="padding: 13px 5px 5px; width: calc(100% - 20px);white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">
+                                        <div style="width: 100%;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">${i['summary']}</div>
+                                    </div>
+                                    <div style="margin: 5px 0 5px auto; position: relative; top: 2px; color:${i['customFields'].filter(i => i.name === "State")[0].value.color['foreground']}aa;background-color:${i['customFields'].filter(i => i.name === "State")[0].value.color['background']}aa;width: max-content;border-radius: 999px;padding: 5px 10px;">
+                                        <div>${i['customFields'].filter(i => i.name === "State")[0].value.name}</div>
+                                    </div>
+                                `).join("");
+                        })
+                    })
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById("pane-issues-error-message").innerText = e.stack + "\n\n" + `node: ${process.versions.node}, chrome: ${process.versions.chrome}, electron: ${process.versions.electron}`;
+                    document.getElementById("pane-issues-content").style.display = "none";
+                    document.getElementById("pane-issues-error").style.display = "flex";
+                }
+            </script>
+        </div>
+        <div id="pane-homework" class="pane" style="width: 100%;height: 100%;display: none;">
+            <div style="background: rgba(0, 0, 0, .05);padding: 8px;border-top-left-radius: 20px;border-top-right-radius: 20px;border-bottom: 1px solid rgba(0, 0, 0, .05);height: 37px;">
+                <img src="homework.svg" style="vertical-align: middle;width: 36px;">
+                <span style="vertical-align: middle;font-size: 20px;font-weight: bold;">Homework to do</span>
+            </div>
+            <div style="width: 100%; height: calc(100% - 54px);" id="pane-homework-content">
+                <div style="width: calc(100% - 20px); margin: 10px;" id="homework"></div>
+            </div>
+            <div style="display: none; align-items: center; justify-content: center; text-align: center; width: 100%; height: calc(100% - 54px);" id="pane-homework-error">
+                <div>
+                    <img src="error.svg" style="width: 96px;">
+                    <span style="display: block;font-size: 20px;font-weight: bold;">Something went wrong</span>
+                    <p style="border-bottom: 1px solid rgba(0, 0, 0, .1);margin-bottom: 0;padding-bottom: 15px;">An error occurred while loading this page, please try again later.</p>
+                    <pre id="pane-homework-error-message" style="text-align: left;font-family: 'JetBrains Mono', monospace;font-size: 10px; white-space: pre-wrap; word-break: break-all; max-width: 90%;"></pre>
+                </div>
+            </div>
+            <script>
+                try {
+                    const subjects = require('./subjects.json');
+
+                    require('electron').ipcRenderer.invoke("homework").then((data) => {
+                        data = data.sort((a, b) => {
+                            return a.for.getTime() - b.for.getTime();
+                        });
+
+                        let homework = data.map(i => { return { subject: subjects[i['subject']] ?? i['subject'], name: i['description'], color: i['done'] ? 'black' : `hsl(${parseInt(require('crypto').createHash("md5").update(Buffer.from(i.color.substring(1), "hex")).digest("hex").substring(0, 2), 16) * (180 / 255)}deg 60% 40%)`, completed: i['done'], day: new Date(i['for'].getTime() + 3600000 * 6).toISOString().split("T")[0] } });
+
+                        window.homework = homework;
+                        let days = [...new Set(homework.map(i => i.day))].map(i => { return { iso: i, name: new Date(i).toLocaleDateString("en-US", { day: "numeric", month: "long", weekday: "long" }) } });
+
+                        for (let day of days) {
+                            document.getElementById("homework").innerHTML += `
+                            <div style="display: block;font-size: 20px;">${day.name}</div>
+                            <div style="width: calc(100% - 20px); display: grid; grid-template-columns: max-content 1fr;margin-left: 20px;">
+                                ${homework.filter(i => i.day === day.iso).map(i => `
+                                <div style="padding: 5px; text-align: right; ${i['completed'] ? 'text-decoration: line-through; opacity: .5;' : ''}">
+                                    <div style="text-align: right;">
+                                        <span style="font-weight: bolder; text-align: right; color:${i['color']}">${i['subject']}</span>
+                                    </div>
+                                </div>
+                                <div style="padding: 5px; width: calc(100% - 20px);white-space: nowrap;overflow: hidden;text-overflow: ellipsis; ${i['completed'] ? 'text-decoration: line-through; opacity: .5;' : ''}">
+                                    <div style="width: 100%;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;">${i['name']}</div>
+                                </div>
+                                `).join("")}
+                            </div>
+                            <div style="margin-bottom: 20px;"></div>
+                            `;
+                        }
+
+                        console.log(homework);
+                    });
+                } catch (e) {
+                    console.error(e);
+                    document.getElementById("pane-homework-error-message").innerText = e.stack + "\n\n" + `node: ${process.versions.node}, chrome: ${process.versions.chrome}, electron: ${process.versions.electron}`;
+                    document.getElementById("pane-homework-content").style.display = "none";
+                    document.getElementById("pane-homework-error").style.display = "flex";
+                }
+            </script>
+        </div>
+    </div>
+    <div style="color: rgba(255, 255, 255, .5);position: fixed;right: 10px;top: 5px;">Last updated <span id="update"></span> · For informational purposes only.</div>
+    <script>
+        document.getElementById("update").innerText = new Date().toLocaleDateString("en-US", { day: "numeric", month: "long", hour: "numeric", minute: "numeric", hour12: true });
+
+        function selectPane(pane) {
+            Array.from(document.getElementsByClassName("pane")).map(i => i.style.display = "none");
+            document.getElementById("pane-" + pane).style.display = "";
+        }
+
+        selectPane("issues");
+    </script>
+</body>
+</html>
